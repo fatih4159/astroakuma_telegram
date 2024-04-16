@@ -15,8 +15,10 @@ The bot uses the following npm packages:
 
 The bot requires the following environment variables:
 
+```
 - TELEGRAM_API_KEY: Your Telegram Bot API key.
 - OPENWEATHERMAP_API_KEY: Your OpenWeatherMap API key.
+````
 
 These should be placed in a .env file in the root directory of the project.
 
@@ -26,6 +28,7 @@ The bot is currently set to run in polling mode. To start the bot, simply run th
 
 ```bash
 npm run start
+```
 
 ## Functionality
 The bot fetches the Astro Data of a user based on their zipcode and country code using the OpenWeatherMap API and Swiss Ephermis API.
