@@ -98,14 +98,21 @@ bot.on('message', async (msg) => {
     } else if (!users[chatId].countrycode) {
         users[chatId].countrycode = msg.text;
 
-        // Get the coordinates of the birthcity
-        const coordinates = await getCoordinates(chatId);
 
-        // Get the astrology reading
-        const birthchart = await getAstroData(users[chatId].birthdate, users[chatId].birthtime, coordinates);
+        try {
+            // Get the coordinates of the birthcity
+            const coordinates = await getCoordinates(chatId);
 
-        // Send the birthchart to the user
-        bot.sendMessage(chatId, birthchart);
+            // Get the astrology reading
+            const birthchart = await getAstroData(users[chatId].birthdate, users[chatId].birthtime, coordinates);
+
+            // Send the birthchart to the user
+            bot.sendMessage(chatId, birthchart);
+        } catch (error) {
+            console.error("error");
+            // Handle the error here or send an error message to the user
+        }
+
     }
 });
 
