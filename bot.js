@@ -7,10 +7,6 @@ const openweathermap_api_key = process.env.OPENWEATHERMAP_API_KEY;
 const users = {};
 const bot = new TelegramBot(telegram_api_key, {polling: true});
 
-
-
-
-
 // fetching coordinates using OpenWeatherMap API
 async function getCoordinates(chatId) {
     console.log("getting coordinates")
@@ -51,68 +47,64 @@ async function getAstroData(birthdate, birthtime, coordinates) {
         }
     );
 
-    // Calculate the birthchart
-    const result = swisseph.swe_houses(jd, coordinates.latitude, coordinates.longitude, 'P');
+    // calculate the birthchart with planet, sign (with degree) and its house
 
-    // convert the result to a string
-    const birthchart = JSON.stringify(result);
+    const botText = `Your birthdate is ${users[chatId].birthdate} and your birthtime is ${users [chatId].birthtime}.`;
 
-    // convert the birthchart to a readable format
-    const birthchartObj = JSON.parse(birthchart);
-    const readableBirthchart = {
-        house: birthchartObj.house,
-        ascendant: birthchartObj.ascendant,
-        mc: birthchartObj.mc,
-        armc: birthchartObj.armc,
-        vertex: birthchartObj.vertex,
-        equatorialAscendant: birthchartObj.equatorialAscendant,
-        kochCoAscendant: birthchartObj.kochCoAscendant,
-        munkaseyCoAscendant: birthchartObj.munkaseyCoAscendant,
-        munkaseyPolarAscendant: birthchartObj.munkaseyPolarAscendant
-    };
+    const astroData = swisseph.swe_calc_ut(jd, coordinates.latitude, coordinates.longitude, swisseph.SEFLG_SWIEPHOSE, swisseph.SEFLG_SIDEREAL);
 
-    const botText = `Houses: ${readableBirthchart.house}\n\nAscendant: ${readableBirthchart.ascendant}\n\nMC: ${readableBirthchart.mc}\n\nARMC: ${readableBirthchart.armc}\n\nVertex: ${readableBirthchart.vertex}\n\nEquatorial Ascendant: ${readableBirthchart.equatorialAscendant}\n\nKoch Co-Ascendant: ${readableBirthchart.kochCoAscendant}\n\nMunkasey Co-Ascendant: ${readableBirthchart.munkaseyCoAscendant}\n\nMunkasey Polar Ascendant: ${readableBirthchart.munkaseyPolarAscendant}`;
+    for (let i = 0; i < swisseph.SE_NPLANETS; i++) {
+        const planet = swisseph.swe_get_planet_name(i);
+
+        const house = swisseph.swe_get_house(astroData[i].house);
+        const sign = swisseph.swe_get_sign(astroData[i].sign);
+        const degree = swisseph.swe_deg(astroDataData[i].angle);
+
+        botText += `\n${planet}: ${degree}° ${sign} in house ${house}`;
+    }
+
+    // send the astrodata to the user
+    bot.sendMessage(chatId, botText);
+    users[chatId] = {};
     console.log("got astrodata")
 
     return botText;
 }
 
-
-//Telegram Bot Actions
-bot.on('message', async (msg) => {
+// start command
+bot.onText(/\/start/, (msg) => {
     const chatId = msg.chat.id;
-    console.log(msg.text);
-
-    if (!users[chatId]) {
-        users[chatId] = {};
-        bot.sendMessage(chatId, 'Please enter your birthdate (YYYY-MM-DD):');
-    } else if (!users[chatId].birthdate) {
-        users[chatId].birthdate = msg.text;
-        bot.sendMessage(chatId, 'Please enter your birthtime (HH:MM):');
-    } else if (!users[chatId].birthtime) {
-        users[chatId].birthtime = msg.text;
-        bot.sendMessage(chatId, 'Please enter your Zipcode:');
-    } else if (!users[chatId].zipcode) {
-        users[chatId].zipcode = msg.text;
-        bot.sendMessage(chatId, 'Please enter your ContryCode:');
-    } else if (!users[chatId].countrycode) {
-        users[chatId].countrycode = msg.text;
-
-
-        try {
-            // Get the coordinates of the birthcity
-            const coordinates = await getCoordinates(chatId);
-
-            // Get the astrology reading
-            const birthchart = await getAstroData(users[chatId].birthdate, users[chatId].birthtime, coordinates);
-
-            // Send the birthchart to the user
-            bot.sendMessage(chatId, birthchart);
-        } catch (error) {
-            console.error("error");
-            // Handle the error here or send an error message to the user
-        }
-
-    }
+    users[chatId] = {};
+    bot.sendMessage(chatId, 'Welcome to the Astrology Bot! Please enter your birthdate in the format YYYY-MM-DD.');
 });
 
+// birthdate command
+bot.onText(/^\d{4}-\d{2}-\d{2}$/, (msg) => {
+    const chatId = msg.chat.id;
+    users[chatId].birthdate = msg.text;
+    bot.sendMessage(chatId, 'Please enter your birthtime in the format HH:MM.');
+});
+
+// birthtime command
+bot.onText(/^\d{2}:\d{2}$/, (msg) => {
+    const chatId = msg.chat.id;
+    users[chatId].birthtime = msg.text;
+    bot.sendMessage(chatId, 'Please enter your zip code.');
+});
+
+// zip code command
+bot.onText(/^\d{5}$/, (msg) => {
+    const chatId = msg.chat.id;
+    users[chatId].zipcode = msg.text;
+    bot.sendMessage(chatId, 'Please enter your country code.');
+});
+
+// country code command
+bot.onText(/^[A-Z]{2}$/, (msg) => {
+    const chatId = msg.chat.id;
+    users[chatId].countrycode = msg.text;
+    getCoordinates(chatId)
+        .then((coordinates) => getAstroData(users[chatId].birthdate, users[chatId].birthtime, coordinates))
+        .then((botText) => bot.sendMessage(chatId, botText))
+        .catch((error) => bot.sendMessage(chatId, 'Sorry, there was an error. Please try again.'));
+});
