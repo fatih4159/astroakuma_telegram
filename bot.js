@@ -132,3 +132,9 @@ bot.on(msg => msg.text === '/birthchart', async (msg) => {
     }
 
 });
+
+// reset the bot using '/reset'
+bot.on(msg => msg.text === '/reset', async (msg) => {
+    users[chatId] = {};
+    bot.sendMessage(chatId, 'Please enter your birthdate (YYYY-MM-DD):');
+});
